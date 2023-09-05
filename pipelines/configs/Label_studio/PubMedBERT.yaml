@@ -1,0 +1,48 @@
+---
+  run_name: PubMedBERT
+  ########################
+  # Model fine-tune parameters
+  ########################
+  TC_dir: 
+  # development set file path
+  deve_id_file: 
+  # ratio of validation set. Will be sampled from development set
+  valid_ratio: 0.2
+  # single-label or multi-label
+  label_mode: multi-label
+  # Define relation labels and category numbers
+  label_map: 
+    A0: 0
+    A1: 1
+    A2: 2
+    A3: 3
+    A4: 4
+    B0: 5
+    B1R: 6
+    B2R: 7
+    BX: 8
+  # tokenizer path
+  tokenizer: 
+  # wordpiece tokens to include in a training instance
+  sequence_length: 128
+  # base NLP model file path
+  base_model: 
+  # learning rate
+  lr: 2.e-6
+  # n_ephoch
+  n_epochs: 30
+  # batch_size
+  batch_size: 1
+  # Output path
+  out_path: 
+  # CUDA device name
+  device: cuda:0
+  ########################
+  # Evaluation parameters
+  ########################
+  # batch size for evaluation
+  eval_batch_size: 2
+  # test set file path
+  test_id_file: 
+  # checkpoint to evaluate, "best" use the best with lowest validation loss
+  checkpoint: best  

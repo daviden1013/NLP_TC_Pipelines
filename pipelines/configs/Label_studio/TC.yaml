@@ -1,0 +1,9 @@
+---
+  run_name: TC
+  # the variable name for document ID
+  doc_id_var: doc_id
+  # file path for the annotation JSON
+  ann_file: 
+  # directory for TC files
+  TC_dir:
+ 
