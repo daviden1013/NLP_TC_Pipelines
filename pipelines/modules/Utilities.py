@@ -97,7 +97,7 @@ class Text_Classification_Document:
       if self.has_label():
         tc_dict['label'] = self.label
       if self.has_predicted_prob():
-        tc_dict['has_predicted_prob'] = self.has_predicted_prob
+        tc_dict['has_predicted_prob'] = self.predicted_prob
         
       yaml.safe_dump(tc_dict, yaml_file, sort_keys=False)
       yaml_file.flush()
@@ -277,6 +277,8 @@ class TC_Trainer():
                drop_last: bool=True,
                save_model_mode: str="best", 
                save_model_path: str=None, 
+               early_stop: bool=True,
+               early_stop_epochs: int=8,            
                log_path: str=None, 
                device:str=None):    
     """
@@ -306,6 +308,11 @@ class TC_Trainer():
       Must be one of {"best", "all"}. The default is best.
     save_model_path : str, optional
       Path for saving checkpoints. The default is None.
+    early_stop : bool, optional
+      Indicator for early stop
+    early_stop_epochs : int, optional
+      if early_stop=True, a continuous n epoches that the validation loss does not 
+      drop will result in early stop.
     log_path : str, optional
       Path for saving logs. The default is None.
     device : str, optional
@@ -329,6 +336,9 @@ class TC_Trainer():
     if save_model_path != None and not os.path.isdir(self.save_model_path):
       os.makedirs(self.save_model_path)
     self.best_loss = float('inf')
+    self.early_stop = early_stop
+    self.loss_no_drop_epochs = 0
+    self.early_stop_epochs = early_stop_epochs
     self.train_dataset = train_dataset
     self.train_loader = DataLoader(train_dataset, batch_size=self.batch_size, 
                                    shuffle=self.shuffle, drop_last=drop_last)
@@ -402,12 +412,24 @@ class TC_Trainer():
         loop.set_postfix(train_loss=train_mean_loss, valid_loss=valid_mean_loss)
         
       """ end of epoch """
+      # Save checkpoint
       if self.save_model_mode == 'all':
         self.save_model(epoch, train_mean_loss, valid_mean_loss)
       elif self.save_model_mode == 'best':
         if epoch == 0 or valid_mean_loss < self.best_loss:
           self.save_model(epoch, train_mean_loss, valid_mean_loss)
           
+      # check early stop
+      if self.early_stop:
+        if self.loss_no_drop_epochs == self.early_stop_epochs - 1:
+          break
+        
+        if valid_mean_loss > self.best_loss:
+          self.loss_no_drop_epochs += 1
+        else:
+          self.loss_no_drop_epochs = 0    
+          
+      # reset best loss
       self.best_loss = min(self.best_loss, valid_mean_loss)
             
 
