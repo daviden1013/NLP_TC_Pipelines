@@ -441,6 +441,8 @@ class TC_Predictor:
                label_mode:str,
                label_map:Dict,
                batch_size:int,
+               force_predict:bool=False,
+               cutoff:Dict[str,float]=None,
                device:str=None):
     """
     This class inputs a fine-tuned model and a dataset. 
@@ -459,6 +461,12 @@ class TC_Predictor:
       DESCRIPTION.
     batch_size : int
       batch size for prediction. Does not affect prediction results.
+    force_predict : bool
+      For multi_label only, when none of the label has > 0.5 prob, force select
+      the label with max prob.
+    cutoff : Dict[str,float]
+      For multi_label only, when a dict of cut-off are provided, use the cut-offs
+      if None, use default 0.5 for all levels.
     device : str, optional
       CUDA device name. The default is cuda:0 if available, or cpu.
     """
@@ -474,6 +482,8 @@ class TC_Predictor:
     self.label_mode = label_mode
     self.label_map = label_map
     self.batch_size = batch_size
+    self.force_predict = force_predict
+    self.cutoff =cutoff
     self.dataset = dataset
     self.dataloader = DataLoader(self.dataset, batch_size=self.batch_size, shuffle=False, drop_last=False)
     
@@ -521,8 +531,14 @@ class TC_Predictor:
           tc = tcs[doc_id]
           probs = batch_probs[i]
           pred_prob = {k:p.item() for k, p in zip(self.label_map.keys(), probs)}
-          label = [k for k, p in pred_prob.items() if p > 0.5]
+          if self.cutoff is not None:
+            label = [k for k, p in pred_prob.items() if p > self.cutoff[k]]
+          else:
+            label = [k for k, p in pred_prob.items() if p > 0.5]
           
+          if len(label) == 0 and self.force_predict:
+            label = [max(pred_prob.items(), key=lambda x:x[1])[0]]
+            
           tc.label = label
           tc.predicted_prob = pred_prob
           tc.label_mode = 'multi-label'
